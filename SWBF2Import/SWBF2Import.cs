@@ -138,7 +138,19 @@ public static class SWBF2Import {
             float size = terrain.GridSize * terrain.GridScale;
             data.size = new Vector3(size, range, size);
 
+			//Load textures onto terrain
+            SplatPrototype[] splats = new SplatPrototype[terrain.Layers.Where(l => !string.IsNullOrEmpty(parseChars(l.DiffuseTexture))).ToArray().Length];
+            for (int i = 0; i < splats.Length; i++)
+            {
+                SplatPrototype splat = new SplatPrototype();
+                splat.texture = Resources.Load("Textures/" + parseChars(terrain.Layers[i].DiffuseTexture.Replace(".tga", ""))) as Texture2D;
+                splat.tileSize = new Vector2(8, 8);//Not sure if correct.
+                splat.metallic = 0f;
+                splat.specular = new Color(1f, 1f, 1f);
+                splats[i] = splat;
+            }
 
+            data.splatPrototypes = splats;
 
             GameObject terrainObj = Terrain.CreateTerrainGameObject(data);
 
@@ -149,6 +161,11 @@ public static class SWBF2Import {
 
             //we're ignoring the Terrains extend window. just display the whole terrain
         }
+    }
+
+    public static string parseChars(String str)
+    {
+        return Regex.Replace(str, @"[^a-zA-Z0-9-.-_]+", "");
     }
 
 	public static GameObject ImportMSH(string path) {
