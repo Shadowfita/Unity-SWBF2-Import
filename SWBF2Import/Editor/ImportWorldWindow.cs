@@ -20,10 +20,10 @@ public class ImportWorldWindow : EditorWindow {
         ImportWorldWindow window = GetWindow<ImportWorldWindow>();
 
         if (string.IsNullOrEmpty(window.altMshDirs[0]))
-            window.altMshDirs[0] = @"D:\BF2_ModTools\data\Common\mshs";
+            window.altMshDirs[0] = @"F:\BF2_ModTools\data\Common\mshs";
 
         if (string.IsNullOrEmpty(window.altMshDirs[1]))
-            window.altMshDirs[1] = @"D:\BF2_ModTools\data\Common\mshs\PC";
+            window.altMshDirs[1] = @"F:\BF2_ModTools\data\Common\mshs\PC";
 
         window.Show();
 
@@ -127,6 +127,7 @@ public class ImportWorldWindow : EditorWindow {
                         mshDirs[i] = altMshDirs[i - 4];
                     }
 
+                    SWBF2Import.WORLD = Path.GetFileNameWithoutExtension(worldFile.FullName) + "/";
                     SWBF2Import.ImportWLD(world, mshDirs, layerSelected, importTerrain);
 
                     //foreach (string s in LibSWBF2.Log.GetAllLines(LibSWBF2.LogType.Info))

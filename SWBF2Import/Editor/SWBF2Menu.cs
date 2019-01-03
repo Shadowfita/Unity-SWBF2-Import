@@ -13,6 +13,7 @@ public class SWBF2Menu : ScriptableObject {
         FileInfo file = new FileInfo(fileName);
 
         if (file.Exists) {
+            SWBF2Import.WORLD = string.Empty;
             GameObject msh = SWBF2Import.ImportMSH(file.FullName);
 
             if (msh != null) {

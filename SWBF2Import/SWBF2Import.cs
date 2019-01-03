@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -8,13 +9,14 @@ using LibSWBF2.MSH.Types;
 using LibSWBF2.MSH.Chunks;
 using LibSWBF2.WLD;
 using LibSWBF2.WLD.Types;
-
+using System.Text.RegularExpressions;
 
 public static class SWBF2Import {
-    public static readonly string MESH_FOLDER = "Meshes";
-    public static readonly string SHADER = "Standard (Roughness setup)";
-    public static readonly string NORMAL_MAP_SUFFIX = "_bump"; //It is normally bump map, You have to fix to normal map in unity. Not 100% accurate. You should change it back to "_normal" if you use custom normals.
-    public static readonly bool CREATE_ASSETS = false;
+    public static readonly string MESH_FOLDER = "Prefabs";
+    public static readonly string SHADER = "Autodesk Interactive";
+    public static readonly string NORMAL_MAP_SUFFIX = "_normal";
+    public static readonly bool CREATE_ASSETS = true;
+    public static string WORLD = string.Empty;
 
     public static string ASSET_PATH = Application.dataPath;
     public static MTYP[] LEGAL_TYPES = new MTYP[] {
@@ -138,7 +140,7 @@ public static class SWBF2Import {
             float size = terrain.GridSize * terrain.GridScale;
             data.size = new Vector3(size, range, size);
 
-			//Load textures onto terrain
+            //Load textures onto terrain
             SplatPrototype[] splats = new SplatPrototype[terrain.Layers.Where(l => !string.IsNullOrEmpty(parseChars(l.DiffuseTexture))).ToArray().Length];
             for (int i = 0; i < splats.Length; i++)
             {
@@ -168,7 +170,7 @@ public static class SWBF2Import {
         return Regex.Replace(str, @"[^a-zA-Z0-9-.-_]+", "");
     }
 
-	public static GameObject ImportMSH(string path) {
+    public static GameObject ImportMSH(string path) {
         FileInfo mshFile = new FileInfo(path);
 
         if (mshFile.Exists) {
@@ -182,12 +184,19 @@ public static class SWBF2Import {
 
             string fileName = mshFile.Name.Replace(".msh", "");
 
-            if (!Directory.Exists(ASSET_PATH + "/" + MESH_FOLDER) && CREATE_ASSETS)
-                AssetDatabase.CreateFolder("Assets", MESH_FOLDER);
+            if (CREATE_ASSETS && File.Exists("Assets/Resources/Prefabs/" + WORLD + fileName + ".prefab"))
+                return UnityEngine.Object.Instantiate(Resources.Load("Prefabs/" + WORLD + fileName)) as GameObject;
+
+            if (!Directory.Exists(ASSET_PATH + "/Resources/Prefabs") && CREATE_ASSETS)
+                AssetDatabase.CreateFolder(@"Assets\Resources", "Prefabs");
 
             GameObject rootObj = new GameObject(fileName);
 
             foreach (MODL mdl in msh.Models) {
+                
+                if (CREATE_ASSETS && !Directory.Exists(@"Assets\Resources\Meshes\" + fileName))
+                    AssetDatabase.CreateFolder(@"Assets\Resources\Meshes", fileName);
+
                 if (!Array.Exists(LEGAL_TYPES, t => t == mdl.Type))
                     continue;
 
@@ -306,10 +315,17 @@ public static class SWBF2Import {
                         collider.isTrigger = true;
                     }
                 }
+
+                if (CREATE_ASSETS && !File.Exists(@"Assets\Resources\Meshes\" + fileName + @"\" + mdl.Name))
+                    AssetDatabase.CreateAsset(mesh, @"Assets\Resources\Meshes\" + fileName + @"\" + mdl.Name);
             }
 
-            if (CREATE_ASSETS)
-                PrefabUtility.CreatePrefab("Assets/Meshes/" + fileName + "/" + fileName + ".prefab", rootObj, ReplacePrefabOptions.ConnectToPrefab);
+            if (CREATE_ASSETS && !File.Exists("Assets/Resources/Prefabs/" + WORLD + fileName + ".prefab"))
+            {
+                if (!Directory.Exists("Assets/Resources/Prefabs/" + WORLD))
+                    Directory.CreateDirectory("Assets/Resources/Prefabs/" + WORLD);
+                PrefabUtility.CreatePrefab("Assets/Resources/Prefabs/" + WORLD + fileName + ".prefab", rootObj, ReplacePrefabOptions.ConnectToPrefab);
+            }
 
             return rootObj;
         }
@@ -370,7 +386,15 @@ public static class SWBF2Import {
 
             if (texture != null) {
                 material.SetTexture("_MainTex", texture);
+                if (!File.Exists(@"Assets\Resources\Materials\" + from.Texture.Replace(".tga", ".mat")))
+                {
+                    AssetDatabase.CreateAsset(material, "Assets/Resources/Materials/" + from.Texture.Replace(".tga", ".mat"));
+                    material = Resources.Load("Materials/" + from.Texture.Replace(".tga", "")) as Material;
+                }
+                else
+                    material = Resources.Load("Materials/" + from.Texture.Replace(".tga", "")) as Material;
             } else {
+                Debug.LogWarning(File.Exists(from.Texture));
                 Debug.LogWarning("Could not find " + texPath);
             }
 
